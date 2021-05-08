@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>Earnings by Place of Residence in London</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.0.1/mapbox-gl.css" rel="stylesheet" />
+
+    <script charset="utf-8" src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/dimple/2.3.0/dimple.latest.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .map-overlay {
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            position: absolute;
+            width: 25%;
+            top: 0;
+            left: 0;
+            padding: 10px;
+        }
+
+        .map-overlay .map-overlay-inner {
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .map-overlay table {
+            border: none;
+            width: 100%;
+        }
+
+        .map-overlay h2 {
+            line-height: 24px;
+            display: block;
+            margin: 0 0 10px;
+            font-size: 180%
+        }
+
+        .map-overlay label {
+            font: 16px/18px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+            vertical-align: bottom;
+            margin: 0;
+            padding: 0;
+        }
+
+        .map-overlay .legend .bar {
+            height: 10px;
+            width: 100%;
+            background: linear-gradient(to right, #feeeed, #d71345);
+        }
+
+        .map-overlay input {
+            display: inline;
+            vertical-align: middle;
+            margin: 5px;
+            padding: 0;
+        }
+
+        
+
+        .mapboxgl-popup {
+            max-width: 400px;
+            font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        }
+
+        .high{float: right;}
+
+    
+
+        #chartContainer {
+            width: 430px;
+            margin: auto;
+            margin-top: 10px;
+            z-index: 9;
+            position: fixed;
+            right: 42px;
+            background-color: aliceblue;
+        }
+
+        #chartContainer p {
+            margin-left: 60px;
+            margin-bottom: 5px;
+            margin-top: 0;
+            padding: 0;
+        }
+
+        #charttitle {
+            font: bold 22px Verdana, sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+
+    <div class='map-overlay top'>
+        <div class='map-overlay-inner'>
+            <h2>Earnings by Place of Residence in London</h2>
+            <table>
+                <tr>
+                    <td>
+                        <input id='slider' type='range' min='2002' max='2020' step='1' value='0' list='tickmarks' style="width: 200px;"/>
+                        <datalist id="tickmarks">
+                            <option value="2002">
+                            <option value="2003">
+                            <option value="2004">
+                            <option value="2005">
+                            <option value="2006">
+                            <option value="2007">
+                            <option value="2008">
+                            <option value="2009">
+                            <option value="2010">
+                            <option value="2011">
+                            <option value="2012">
+                            <option value="2013">
+                            <option value="2014">
+                            <option value="2015">
+                            <option value="2016">
+                            <option value="2017">
+                            <option value="2018">
+                            <option value="2019">
+                            <option value="2020">
+                        </datalist>
+                    </td>
+                    <td>
+                        <label id='year'>2002</label>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <font face="verdana" size="3">Please select the feature you interested in: &nbsp;&nbsp;</font>
+                        <br />
+                        <!-- <ul>
+
+                            <li><input type="radio" name="layers" value="total_weekly" checked>total,weekly &nbsp;&nbsp;
+                            </li>
+                            <li><input type="radio" name="layers" value="total_hourly">total,hourly &nbsp;&nbsp;</li>
+                            <li><input type="radio" name="layers" value="Female_hourly">Female,hourly &nbsp;&nbsp;</li>
+                            <li><input type="radio" name="layers" value="Fulltime_hourly">Fulltime,hourly &nbsp;&nbsp;
+                            </li>
+                            <li><input type="radio" name="layers" value="Fulltime_weekly">Fulltime,weekly &nbsp;&nbsp;
+                            </li>
+                            <li><input type="radio" name="layers" value="Male_hourly">Male,hourly &nbsp;&nbsp;</li>
+                            <li><input type="radio" name="layers" value="Male_weekly">Male,weekly &nbsp;&nbsp;</li>
+                            <li><input type="radio" name="layers" value="Partime_hourly">Partime,hourly &nbsp;&nbsp;
+                            </li>
+                            <li><input type="radio" name="layers" value="Parttime_weekly">Parttime,weekly &nbsp;&nbsp;
+                            </li>
+                        </ul> -->
+                        <input type="radio" name="top" value="weekly" checked>Weekly &nbsp;&nbsp;
+                        <input type="radio" name="top" value="hourly">Hourly &nbsp;&nbsp;
+                        <hr />
+                        <input type="radio" name="bottom" value="total" checked>Total &nbsp;&nbsp;
+                        <input type="radio" name="bottom" value="Parttime">Part-time &nbsp;&nbsp;
+                        <input type="radio" name="bottom" value="Fulltime">Full-time &nbsp;&nbsp;
+                        <input type="radio" name="bottom" value="Male">Male &nbsp;&nbsp;
+                        <input type="radio" name="bottom" value="Female">Female &nbsp;&nbsp;
+                        <!-- <select id="type">
+                            <option value="total_weekly">total,weekly</option>
+                            <option value="total_hourly">total,hourly</option>
+                            <option value="Female_hourly">Female,hourly</option>
+                            <option value="Fulltime_hourly">Fulltime,hourly</option>
+                            <option value="Fulltime_weekly">Fulltime,weekly</option>
+                            <option value="Male_hourly">Male,hourly</option>
+                            <option value="Male_weekly">Male,weekly</option>
+                            <option value="Partime_hourly">Partime,hourly</option>
+                            <option value="Parttime_weekly">Parttime,weekly</option>
+                        </select> -->
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <div id="state-legend" class="legend">
+                            <div class="bar"></div>
+                            <!-- <div><span style="background-color: #723122"></span>300+</div>
+                            <div><span style="background-color: #8b4225"></span>200-300</div>
+                            <div><span style="background-color: #a25626"></span>160-200</div>
+                            <div><span style="background-color: #b86b25"></span>130-160</div>
+                            <div><span style="background-color: #ca8323"></span>100-130</div>
+                            <div><span style="background-color: #da9c20"></span>80-100</div>
+                            <div><span style="background-color: #e6b71e"></span>50-80</div>
+                            <div><span style="background-color: #eed322"></span>30-50</div>
+                            <div><span style="background-color: #f2f12d"></span>0-30</div> -->
+                        </div>
+                        <div class="bt">
+                            <span class="low">Low</span>   
+                            <span class="high">High</span> 
+                        </div>  
+                    </td>
+                </tr>
+                
+
+            </table>
+            <p>Data download from: <a href="https://data.london.gov.uk/dataset/earnings-place-residence-borough">London Datastrore</a>, provided by Office for National Statistics (ONS)</p>
+        </div>
+    </div>
+
+    <div id="chartContainer">
+        <p id="charttitle">total,weekly</p>
+        <!-- <p id="chartsubhead">Population data UN World Urbanization Prospects.</p> -->
+    </div>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibGh6Mzc2NjA0MjQ3IiwiYSI6ImNrbTBxbGxtMjF3eTMybnBsOG92eWpnYnkifQ.mnRxYYWHOJ644qlBlfFQZA';  //Put your mapbox access token here
+
+        // Load a new map in the 'map' HTML div
+        var map = new mapboxgl.Map({
+            container: 'map', // container id
+            style: 'mapbox://styles/mapbox/light-v10', // map background layer location
+            center: [-0.1, 51.5], // starting position [lng, lat]
+            zoom: 8, // starting zoom
+            pitch: 50 // tilt of the viewpoint in degrees
+        });
+
+        var years = [2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020];
+        var year = years[0]
+        var layerMap = [
+            {
+                id: 'total_weekly',
+                url: 'lhz376604247.9f2oaroi',
+                name: 'total_weekly-2rupak',
+                stops: [300, 400, 500, 600, 700, 800, 900, 1000],
+                plus: 0.5
+            },
+            {
+                id: 'total_hourly',
+                url: 'lhz376604247.91lijaa9',
+                name: 'Total_hourly-85mebg',
+                stops: [8, 11, 14, 17, 20, 23, 26, 29],
+                plus: 30
+            },
+            {
+                id: 'Female_weekly',
+                url: 'lhz376604247.9mcu1e49',
+                name: 'Female_weekly-8k4q8o',
+                stops: [300, 400, 500, 600, 700, 800, 900, 1000],
+                plus: 0.5
+            },
+            {
+                id: 'Female_hourly',
+                url: 'lhz376604247.5yrs2w49',
+                name: 'Female_hourly-djyhwy',
+                stops: [8, 11, 14, 17, 20, 23, 26, 29],
+                plus: 30
+            },
+            {
+                id: 'Fulltime_hourly',
+                url: 'lhz376604247.4lv2f68k',
+                name: 'Fulltime_hourly-ak08uf',
+                stops: [8, 11, 14, 17, 20, 23, 26, 29],
+                plus: 30
+            },
+            {
+                id: 'Fulltime_weekly',
+                url: 'lhz376604247.1x2mbu3s',
+                name: 'Fulltime_weekly-8dk78p',
+                stops: [300, 400, 500, 600, 700, 800, 900, 1000],
+                plus: 0.5
+            },
+            {
+                id: 'Male_hourly',
+                url: 'lhz376604247.4tqg6pkz',
+                name: 'Male_hourly-4cl1nj',
+                stops: [8, 11, 14, 17, 20, 23, 26, 29],
+                plus: 30
+            },
+            {
+                id: 'Male_weekly',
+                url: 'lhz376604247.87ccml42',
+                name: 'Male_weekly-cs23q6',
+                stops: [300, 400, 500, 600, 700, 800, 900, 1000],
+                plus: 0.5
+            },
+            {
+                id: 'Parttime_hourly',
+                url: 'lhz376604247.49juvl70',
+                name: 'Partime_hourly-8isoj7',
+                stops: [8, 11, 14, 17, 20, 23, 26, 29],
+                plus: 30
+            },
+            {
+                id: 'Parttime_weekly',
+                url: 'lhz376604247.cz47cgz4',
+                name: 'Parttime_weekly-13yaq7',
+                stops: [300, 400, 500, 600, 700, 800, 900, 1000],
+                plus: 0.5
+            }
+        ]
+
+        layer = layerMap[0]
+        var top_v = "weekly", bottom_v = "total";
+        map.on('load', function () {
+            // Set global light properties which influence 3D layer shadows
+            map.setLight({ color: "#fff", intensity: 0.15, position: [1.15, 210, 30] });
+            // Add standard navigation control
+            map.addControl(new mapboxgl.NavigationControl());
+
+            addMyLayer(layerMap[0])
+            drawChart()
+            // Add the label layer
+
+
+
+            let radios_top = document.getElementsByName('top')
+            for (let i = 0; i < radios_top.length; i++) {
+                radios_top[i].addEventListener("click", (e) => {
+                    console.log(e)
+                    top_v = e.target.value
+                    layer = layerMap.filter(m => m.id === bottom_v + "_" + top_v)[0]
+                    setLayer(layer)
+                    drawChart()
+                });
+            }
+            let radios_bottom = document.getElementsByName('bottom')
+            for (let i = 0; i < radios_bottom.length; i++) {
+                radios_bottom[i].addEventListener("click", (e) => {
+                    console.log(e)
+                    bottom_v = e.target.value
+                    layer = layerMap.filter(m => m.id === bottom_v + "_" + top_v)[0]
+                    setLayer(layer)
+                    drawChart()
+                });
+            }
+
+            document.getElementById('slider').addEventListener('input', (e) => {
+                var year1 = parseInt(e.target.value);
+                document.getElementById('year').textContent = year1;  // Set the label to the correct year
+                year = year1;
+                setLayer(layer)
+                drawChart()
+            });
+
+            function setLayer(layer) {
+                layerMap.forEach(m => {
+                    const { id, url, name } = m
+                    for (let i = 0; i < years.length; i++) {
+                        let name = id + years[i]
+                        var getLayer = map.getLayer(name);
+                        getLayer && map.off('click', name, clickMap)
+                        getLayer && map.removeLayer(name)
+                        getLayer && map.removeSource(name)
+                    }
+                })
+                map.removeLayer('labels')
+                map.removeSource('labels')
+                addMyLayer(layer)
+            }
+
+            function addMyLayer(layer) {
+                const { id, url, name, stops, plus } = layer
+                console.log(year, id, url, name)
+                map.addLayer({
+                    id: id + year,
+                    type: 'fill-extrusion',
+                    source: {
+                        id: id + year,
+                        type: 'vector',
+                        url: 'mapbox://' + url  // Your Mapbox tileset Map ID
+                    },
+                    'source-layer': name,  // name of tileset layer
+                    paint: {
+                        'fill-extrusion-color': {
+                            property: 'Field' + (year - 2002 + 3),
+                            type: 'exponential',
+                            stops: [
+                                [stops[0], '#feeeed'],
+                                [stops[1], '#f8aba6'],
+                                [stops[2], '#f69c9f'],
+                                [stops[3], '#f58f98'],
+                                [stops[4], '#f391a9'],
+                                [stops[5], '#f15b6c'],
+                                [stops[6], '#ef5b9c'],
+                                [stops[7], '#d71345']
+                            ]
+                        },
+                        'fill-extrusion-height': ["*", ['number', ['get', 'Field' + (year - 2002 + 3)]], plus],
+                        'fill-extrusion-opacity': 0.95,
+                        'fill-extrusion-opacity-transition': {
+                            duration: 1000,
+                            delay: 0
+                        }
+                    }
+                });
+                map.on('click', id + year, clickMap);
+                map.on('mouseenter', id + year, function () {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', id + year, function () {
+                    map.getCanvas().style.cursor = '';
+                });
+
+
+                map.addLayer({
+                    'id': 'labels',
+                    'type': 'symbol',
+                    source: {
+                        id:'labels',
+                        type: 'vector',
+                        url: 'mapbox://lhz376604247.cz47cgz4' // Your Mapbox tileset Map ID
+                    },
+                    'source-layer': 'Parttime_weekly-13yaq7', 
+                    'layout': {
+                        'text-field': '{NAME}',
+                        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                        'text-size': 14,
+                    },
+                    'paint': {
+                        'text-color': 'rgba(0,0,0,0.85)',
+                        'text-halo-color': '#fff',
+                        'text-halo-width': 1
+                    }
+                });
+            }
+
+            function clickMap(e) {
+                console.log(e)
+                const { Field1, Field2, Field3, Field4, Field5, Field6, Field7, Field8, Field9, Field10, Field11 } = e.features[0].properties
+                if ((e.features[0].source === layer.id + year)) {
+                    let field = e.features[0].properties['Field' + (year - 2002 + 3)]
+                    let desc = field === 0 ? `! Estimate and confidence interval not available since the group sample size is zero or disclosive (0-2).` : (field === 1 ? `# These figures are suppressed as statistically unreliable.` : `${field}￡`)
+                    new mapboxgl.Popup()
+                        .setLngLat(e.lngLat)
+                        .setHTML(
+                            `<h2>${Field2}</h2>
+                        <label>Code:${Field1}</label></br>
+                        <label>Year ${year}:${desc}</label>
+                        `
+                        )
+                        .addTo(map);
+                }
+            }
+
+            function drawChart() {
+                let file = layer.id + '_1.csv'
+                document.getElementById('charttitle').innerText = layer.id
+                // let svght = document.getElementById('chartContainer').getElementsByTagName("svg")
+                // for (let i = 0; i <= svght.length; i++) {
+                //     let oo = svght[i];
+                //     oo && oo.remove()
+                // }
+                $("svg").remove();
+
+                d3.csv(file, function (CityData) {
+
+                    var svg = dimple.newSvg("#chartContainer", 400, 400); 
+
+                    var myChart = new dimple.chart(svg, CityData);  
+                    myChart.setBounds(60, 15, 400, 250);            
+
+                    myChart.defaultColors = [
+                        new dimple.color("#54aae3")
+                    ];
+
+
+                    var x = myChart.addCategoryAxis("x", "Area");  
+
+                    var y = myChart.addMeasureAxis("y", year); 
+
+                    var s = myChart.addSeries(null, dimple.plot.bar); 
+
+                    myChart.draw(500); 
+
+                    svg.selectAll("path.domain").style("stroke", "#CCC"); 
+                    svg.selectAll("g.tick line").style("stroke", "#CCC");
+
+                });
+            }
+        });
+
+
+    </script>
+
+</body>
+
+</html>
